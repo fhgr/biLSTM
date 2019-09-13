@@ -79,6 +79,7 @@ if __name__ == '__main__':
 
     # run estimation
 
-    html_sequence = ['html', 'body', 'ul', '[SEP]', 'html', 'body', 'ul', '[MASK]', '[MASK]', '[SEP]', 'html', 'body', 'ul', 'li', '[SEP]']
+    html_sequence = 'html body div div div div div [SEP] html [MASK] div div div div div'.split(" ")
+    html_sequence = 'div div div div div [SEP] html [MASK] div div div div div [SEP] html'.split(" ")
     estimate_sequence(model, [html_sequence], tt, sequence_len)
 

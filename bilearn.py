@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     model = Sequential()
     # model.add(Bidirectional(LSTM(240), input_shape=(sequence_len, vocabulary_vector_size)))
-    model.add(Bidirectional(LSTM(360), input_shape=(sequence_len, tt.vector_len)))
+    model.add(Bidirectional(LSTM(720), input_shape=(sequence_len, tt.vector_len)))
     model.add(Dropout(0.5))
     model.add(Dense(sequence_len * tt.vector_len, activation='tanh'))
     model.build()
