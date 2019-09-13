@@ -6,7 +6,7 @@ from glob import glob
 from csv import reader
 
 import numpy as np
-from encode import int_to_vector, vector_to_int
+from encode import TermTranslator
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -33,25 +33,13 @@ def read_vocabulary_file(fname):
     return vocabulary
 
 
-def get_matrix(data, sequence_len, vocabulary_vector_size):
+def get_matrix(data, sequence_len, term_translator):
     print("Creating data matrix...")
-    result = np.full([len(data), sequence_len, vocabulary_vector_size], 0)
+    result = np.full([len(data), sequence_len, term_translator.vector_len], 0)
     for no, example in enumerate(data):
-        result[no] = [int_to_vector(v, vocabulary_vector_size) for v in example]
+        result[no] = [term_translator.int_to_vector(v) for v in example]
     print("Completed computation of data matrix with shape", result[0].shape, "...")
     return result
-
-def test_get_matrix():
-    data = [[1, 0],
-            [0, 2],
-            [1, 2]]
-    matrix = get_matrix(data, 2, 3)
-    reference = np.asarray([[[-1, 1, -1], [1, -1, -1]],
-                            [[1, -1, -1], [-1, -1, 1]],
-                            [[-1, 1, -1], [-1, -1, 1]]])
-
-    assert np.array_equal(matrix, reference)
-
 
 def l(corpus_pattern):
     ''' loads all corpora matching the given corpus_pattern '''
@@ -64,10 +52,9 @@ def l(corpus_pattern):
 
 if __name__ == '__main__':
     vocabulary = read_vocabulary_file(VOCABULARY)
-    vocabulary_size = len(vocabulary)
-    vocabulary_vector_size = vocabulary_size.bit_length()
-    print("Vocabulary size:", vocabulary_size)
-    print("Vocabulary vector size:", vocabulary_vector_size)
+    tt = TermTranslator(vocabulary)
+    print("Vocabulary size:", len(vocabulary))
+    print("Vocabulary vector size:", tt.vector_len)
 
     #
     # preparing the network
@@ -76,9 +63,9 @@ if __name__ == '__main__':
 
     model = Sequential()
     # model.add(Bidirectional(LSTM(240), input_shape=(sequence_len, vocabulary_vector_size)))
-    model.add(Bidirectional(LSTM(360), input_shape=(sequence_len, vocabulary_vector_size)))
+    model.add(Bidirectional(LSTM(360), input_shape=(sequence_len, tt.vector_len)))
     model.add(Dropout(0.5))
-    model.add(Dense(sequence_len*vocabulary_vector_size, activation='tanh'))
+    model.add(Dense(sequence_len * tt.vector_len, activation='tanh'))
     model.build()
     print(model.summary())
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -89,8 +76,8 @@ if __name__ == '__main__':
     for training_corpus_x, training_corpus_y in zip(TRAINING_CORPUS_X, TRAINING_CORPUS_Y):
         print("Training bi-LSTM with corpus:", training_corpus_x)
         corpus_y = l(training_corpus_y)
-        data_y = get_matrix(corpus_y, sequence_len, vocabulary_vector_size).reshape(len(corpus_y), sequence_len*vocabulary_vector_size)
-        data_x = get_matrix(l(training_corpus_x), sequence_len, vocabulary_vector_size)
+        data_y = get_matrix(corpus_y, sequence_len, tt).reshape(len(corpus_y), sequence_len*tt.vector_len)
+        data_x = get_matrix(l(training_corpus_x), sequence_len, tt)
         num_validation_samples = int(len(data_x)*0.1)
         x_train = data_x[:-num_validation_samples]
         y_train = data_y[:-num_validation_samples]

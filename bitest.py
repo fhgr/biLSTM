@@ -6,7 +6,7 @@ from glob import glob
 from csv import reader
 
 import numpy as np
-from encode import int_to_vector, vector_to_int
+from encode import TermTranslator
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -31,26 +31,6 @@ def read_vocabulary_file(fname):
 
     return vocabulary
 
-def get_matrix(data, sequence_len, vocabulary_size):
-    print("Creating data matrix...")
-    result = np.full([len(data), sequence_len, vocabulary_size], -1)
-    for no, example in enumerate(data):
-        for word_idx, word in enumerate(example):
-            result[no][word_idx][word] = 1
-    print("Completed computation of data matrix...")
-    return result
-
-def test_get_matrix():
-    data = [[1, 0],
-            [0, 2],
-            [1, 2]]
-    matrix = get_matrix(data, 2, 3)
-    reference = np.asarray([[[-1, 1, -1], [1, -1, -1]],
-                            [[1, -1, -1], [-1, -1, 1]],
-                            [[-1, 1, -1], [-1, -1, 1]]])
-
-    assert np.array_equal(matrix, reference)
-
 def index_to_matrix(index_sequence, vocabulary_size):
     vocabulary_vector_size = vocabulary_size.bit_length()
     result = np.full([1, len(index_sequence), vocabulary_vector_size], -1)
@@ -65,39 +45,30 @@ def get_vocabulary(html_sequence, vocabulary):
     '''
     return index_to_matrix([vocabulary.get(term, vocabulary['[UNKOWN]']) for term in html_sequence], len(vocabulary))
 
-def estimate_sequence(model, html_sequence, vocabulary, rev_vocabulary, sequence_len):
+def estimate_sequence(model, html_sequence, term_translator, sequence_len):
     '''
     Uses the classifier to estimate the given sequence.
     Replaces [MASK] tags with the most likely HTML tag.
     '''
-    assert len(html_sequence) == sequence_len
-    x = get_vocabulary(html_sequence, vocabulary)
-    print(x)
+    assert len(html_sequence[0]) == sequence_len
+    x = tt.term_sequence_to_matrix(html_sequence)
+    print(x.reshape(1, sequence_len*tt.vector_len))
     y = model.predict(x)
     print(y)
-    print(binary_matrix_to_word_index(y, rev_vocabulary, sequence_len))
-
-def binary_matrix_to_word_index(result, rev_vocabulary, sequence_len):
-    html = []
-    for element in result.reshape(sequence_len, len(rev_vocabulary).bit_length()):
-        print(element)
-        word = rev_vocabulary[vector_to_int(element)]
-        html.append(word)
-
-    return html
+    print("INPUT:::", tt.matrix_to_term_sequeence(x.reshape(1, sequence_len*tt.vector_len)))
+    print("OUTPUT::", tt.matrix_to_term_sequeence(y))
 
 
 
 
 if __name__ == '__main__':
     vocabulary = read_vocabulary_file(VOCABULARY)
-    rev_vocabulary = {v:k for k,v in vocabulary.items()}
+    tt = TermTranslator(vocabulary)
     print("Vocabulary size:", len(vocabulary))
 
     #
     # preparing the network
     #
-    vocabulary_size = len(vocabulary)  # number of features in the vocabulary
     sequence_len = 15                 # max len of the input sequence
 
     with open(MODEL + '.json') as f:
@@ -108,6 +79,6 @@ if __name__ == '__main__':
 
     # run estimation
 
-    html_sequence = ['html', 'body', 'ul', '[SEP]', 'html', 'body', 'ul','[MASK]', '[MASK]', '[SEP]', 'html', 'body', 'ul', 'li', '[SEP]']
-    estimate_sequence(model, html_sequence, vocabulary, rev_vocabulary, sequence_len)
+    html_sequence = ['html', 'body', 'ul', '[SEP]', 'html', 'body', 'ul', '[MASK]', '[MASK]', '[SEP]', 'html', 'body', 'ul', 'li', '[SEP]']
+    estimate_sequence(model, [html_sequence], tt, sequence_len)
 

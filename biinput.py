@@ -39,7 +39,7 @@ def create_vocabulary_file(sentences):
         words.update(sentence.decode("utf8").split())
 
     # write vocabulary file
-    vocabulary = {'[MASK]': 0, '[SEP]': 1, '[UNKOWN]': 2}
+    vocabulary = {'[SEP]': 0, '[MASK]': 1, '[UNKOWN]': 2}
     with gzip.open(VOCABULARY, 'wt') as f:
         csv = writer(f)
         for word in sorted(words):
@@ -71,10 +71,10 @@ def create_binary_corpus():
     binary_corpus = []
     for sentence in sentences:
         binary_corpus += [vocabulary.get(term, vocabulary['[UNKOWN]']) for term in sentence.decode('utf8').split()]
-        binary_corpus.append(0) # end of sequence symbol
+        binary_corpus.append(vocabulary['[SEP]']) # end of sequence symbol
     return binary_corpus
 
-def get_training_examples(training_sequence, max_estimation_size, mask_value=0, seen_examples=set()):
+def get_training_examples(training_sequence, max_estimation_size, mask_value, seen_examples=set()):
     '''
     Returns: Training examples for the given training_sequence with up to
              max_estimation_size entries masked.
@@ -94,6 +94,8 @@ def get_training_examples(training_sequence, max_estimation_size, mask_value=0, 
 def create_trainings_corpus(binary_corpus, sliding_window_size, max_estimation_size):
     corpus_sequence = 0
 
+    vocabulary = read_vocabulary_file(VOCABULARY)
+    mask_value = vocabulary['[MASK]']
     seen_examples = set()
     x_training_data = []
     y_training_data = []
@@ -101,7 +103,7 @@ def create_trainings_corpus(binary_corpus, sliding_window_size, max_estimation_s
     for i in range(len(binary_corpus)-sliding_window_size):
         # sequence to shuffle
         reference_sequence = binary_corpus[i:i+sliding_window_size]
-        training_sequence = get_training_examples(reference_sequence, max_estimation_size, mask_value=0, seen_examples=seen_examples)
+        training_sequence = get_training_examples(reference_sequence, max_estimation_size, mask_value=mask_value, seen_examples=seen_examples)
         x_training_data.extend(training_sequence)
         y_training_data.extend([reference_sequence] * len(training_sequence))
 
