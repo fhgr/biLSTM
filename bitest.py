@@ -6,6 +6,7 @@ from glob import glob
 from csv import reader
 
 import numpy as np
+from encode import int_to_vector, vector_to_int
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -19,6 +20,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, LSTM, Flatten, Bidirectional, Dropout
 
 VOCABULARY = "html_vocabulary.cvs.gz"
+MODEL = "model1"
 
 def read_vocabulary_file(fname):
     vocabulary = {}
@@ -50,10 +52,11 @@ def test_get_matrix():
     assert np.array_equal(matrix, reference)
 
 def index_to_matrix(index_sequence, vocabulary_size):
-    result = np.full([1, len(index_sequence), vocabulary_size], -1)
-    for word_idx, word in enumerate(index_sequence):
-        result[0][word_idx][word] = 1
+    vocabulary_vector_size = vocabulary_size.bit_length()
+    result = np.full([1, len(index_sequence), vocabulary_vector_size], -1)
+    result[0] = [int_to_vector(v, vocabulary_vector_size) for v in index_sequence]
     return result
+
 
 def get_vocabulary(html_sequence, vocabulary):
     '''
@@ -69,14 +72,16 @@ def estimate_sequence(model, html_sequence, vocabulary, rev_vocabulary, sequence
     '''
     assert len(html_sequence) == sequence_len
     x = get_vocabulary(html_sequence, vocabulary)
+    print(x)
     y = model.predict(x)
+    print(y)
     print(binary_matrix_to_word_index(y, rev_vocabulary, sequence_len))
 
 def binary_matrix_to_word_index(result, rev_vocabulary, sequence_len):
     html = []
-    for element in result.reshape(sequence_len, len(rev_vocabulary)):
+    for element in result.reshape(sequence_len, len(rev_vocabulary).bit_length()):
         print(element)
-        word = rev_vocabulary[np.argmax(element)]
+        word = rev_vocabulary[vector_to_int(element)]
         html.append(word)
 
     return html
@@ -95,10 +100,10 @@ if __name__ == '__main__':
     vocabulary_size = len(vocabulary)  # number of features in the vocabulary
     sequence_len = 15                 # max len of the input sequence
 
-    with open('model.json') as f:
+    with open(MODEL + '.json') as f:
         model = model_from_json(f.read())
 
-    model.load_weights('model.h5')
+    model.load_weights(MODEL + '.h5')
     print('Loaded model from disk...')
 
     # run estimation
