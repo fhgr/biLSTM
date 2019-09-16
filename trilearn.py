@@ -19,8 +19,8 @@ from keras.initializers import Constant
 from keras.models import Sequential
 from keras.layers import Dense, Activation, LSTM, Flatten, Bidirectional, Dropout
 
-TRAINING_CORPUS_X = ["./train/html_training_corpus.bin.gz_x.*", ]
-TRAINING_CORPUS_Y = ["./train/html_training_corpus.bin.gz_y.*", ]
+TRAINING_CORPUS_X = ["html_training_corpus-1-x.0.bin.gz", ]
+TRAINING_CORPUS_Y = ["html_training_corpus-1-y.0.bin.gz", ]
 VOCABULARY = "html_vocabulary.cvs.gz"
 
 def read_vocabulary_file(fname):
