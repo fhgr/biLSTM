@@ -12,7 +12,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils import to_categorical
 from keras.layers import Dense, Input, GlobalMaxPooling1D
-from keras.layers import Conv1D, MaxPooling1D
+from keras.layers import Conv1D, MaxPooling1D, Embedding, TimeDistributed
 from keras.models import Model
 from keras.initializers import Constant
 
@@ -59,19 +59,22 @@ if __name__ == '__main__':
     #
     # preparing the network
     #
-    sequence_len = 15                 # max len of the input sequence
+    
+    gap_size = 1
+    prefix_suffix_size = 5
+    sequence_len = 2 * prefix_suffix_size + gap_size  # max len of the input sequence
+    embedding_size = 15                               # size of the used embedding
 
     model = Sequential()
-    # model.add(Bidirectional(LSTM(240), input_shape=(sequence_len, vocabulary_vector_size)))
-    model.add(Bidirectional(LSTM(720, return_sequences=True), input_shape=(sequence_len, tt.vector_len)))
+    model.add(Embedding(len(vocabulary), embedding_size, input_length=sequence_len))
+    model.add(Bidirectional(LSTM(embedding_size, return_sequences=True)))
+    model.add(Bidirectional(LSTM(embedding_size, return_sequences=True)))
     model.add(Dropout(0.5))
-    model.add(Dense(sequence_len * tt.vector_len, activation='tanh'))
+    model.add(Dense(len(vocabulary)))
+    model.add(Activation('softmax'))
     model.build()
     print(model.summary())
-    # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
  
     # 
     # preparing the training data
@@ -79,8 +82,11 @@ if __name__ == '__main__':
     for training_corpus_x, training_corpus_y in zip(TRAINING_CORPUS_X, TRAINING_CORPUS_Y):
         print("Training bi-LSTM with corpus:", training_corpus_x)
         corpus_y = l(training_corpus_y)
-        data_y = get_matrix(corpus_y, sequence_len, tt).reshape(len(corpus_y), sequence_len*tt.vector_len)
-        data_x = get_matrix(l(training_corpus_x), sequence_len, tt)
+#        data_y = get_matrix(corpus_y, sequence_len, tt).reshape(len(corpus_y), sequence_len*tt.vector_len)
+#        data_x = get_matrix(l(training_corpus_x), sequence_len, tt)
+        data_x = np.asarray(l(training_corpus_x))
+        data_y = to_categorical(np.asarray(l(training_corpus_y)), num_classes=len(vocabulary))
+        print(data_x.shape, data_y.shape)
         num_validation_samples = int(len(data_x)*0.1)
         x_train = data_x[:-num_validation_samples]
         y_train = data_y[:-num_validation_samples]
@@ -90,8 +96,8 @@ if __name__ == '__main__':
         model.fit(x_train, y_train, batch_size=64, epochs=3, validation_data=(x_val, y_val))
 
     # save the model
-    with open('model.json', 'w') as f:
+    with open('model-g{}.json'.format(gap_size), 'w') as f:
         f.write(model.to_json())
 
     # save the model weights
-    model.save_weights('model.h5')
+    model.save_weights('model-g{}.h5'.format(gap_size))
