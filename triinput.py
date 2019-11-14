@@ -19,7 +19,7 @@ from collections import Counter
 
 CORPUS = "html_corpus.text.gz"
 BINARY_CORPUS = "html_corpus.bin.gz"
-TRAINING_CORPUS = "html_training_corpus-{}-{}.{}.bin.gz"
+TRAINING_CORPUS = "html_training_corpus-g{}-{}.{}.bin.gz"
 CORPUS_MAX_CHUNK_SIZE = 10000000
 CORPUS_MAX_CHUNK_SIZE = 100000
 VOCABULARY = "html_vocabulary.cvs.gz"
