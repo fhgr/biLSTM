@@ -20,7 +20,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, LSTM, Flatten, Bidirectional, Dropout
 
 VOCABULARY = "html_vocabulary.cvs.gz"
-MODEL = "model-g1"
+MODEL = "model-g3"
 
 def read_vocabulary_file(fname):
     vocabulary = {}
@@ -81,8 +81,8 @@ if __name__ == '__main__':
     suffix = "div div div ul li"
 
     prefix = "div div div div ul"
-    suffix = "u b html body div"
+    suffix = "u b [SEP] html body"
 
-    html_sequence = (prefix + ' [MASK] ' + suffix).split(" ")
+    html_sequence = (prefix + ' [MASK] [MASK] [MASK] ' + suffix).split(" ")
     estimate_sequence(model, [html_sequence], vocabulary, rev_vocabulary)
 
