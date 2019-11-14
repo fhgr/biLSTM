@@ -39,7 +39,7 @@ def create_vocabulary_file(sentences):
         words.update(sentence.decode("utf8").split())
 
     # write vocabulary file
-    vocabulary = {'[SEP]': 0, '[MASK]': 1, '[UNKOWN]': 2}
+    vocabulary = {'[SEP]': 0, '[MASK]': 1, '[UNKNOWN]': 2}
     with gzip.open(VOCABULARY, 'wt') as f:
         csv = writer(f)
         for word in sorted(words):
